@@ -1,7 +1,7 @@
 # MAMADOU-DIAGNE-TINE_L2SEMI-
 📡 Cartographie des Appareils Connectés – Rapport Technique
 📝 Description du projet
-Cette application permet de scanner un réseau local et d’afficher sur une carte interactive les appareils détectés (adresse IP, adresse MAC, nom d’hôte). Elle est conçue pour un usage en réseau privé, principalement à des fins d’audit ou de visualisation rapide.
+Cette application permet de scanner un réseau local et d’afficher sur une carte interactive les appareils détectés (adresse IP, adresse MAC, nom d’hôte...). Elle est conçue pour un usage en réseau privé, principalement à des fins d’audit ou de visualisation rapide.
 
 🧱 Architecture du projet
 bash
@@ -16,13 +16,12 @@ cartographie_reseau/
 │   └── style.css        # Feuilles de style éventuelles (CSS)
 ⚙️ Fonctionnement technique
 1. Scan réseau (scan.py)
-Utilise la bibliothèque python-nmap pour lancer un scan de type ping scan (-sn) sur le réseau local (192.168.1.0/24 par défaut).
+Utilise la bibliothèque python-nmap pour lancer un scan de type ping scan  sur le réseau local (192.168.1.0/24 ).
 Chaque appareil détecté renvoie :
 
 l’adresse IP
 
 l’adresse MAC
-
 le nom d’hôte (si disponible)
 le os 
 les ports ouverts 
@@ -35,9 +34,7 @@ GET /api/devices : Lance un scan et retourne les appareils détectés au format 
 / et /<path> : Servez l’interface web depuis le dossier frontend.
 
 3. Interface web (index.html)
-Carte interactive centrée sur Dakar (Sénégal) avec Leaflet.js
-
-Marqueurs positionnés avec un léger décalage aléatoire autour de Dakar (car les vrais appareils ne sont pas géolocalisables par IP localement)
+Carte interactive avec Leaflet.js
 
 Chaque marqueur affiche un popup contenant :
 
@@ -46,6 +43,9 @@ le nom de l’appareil (ou "Appareil inconnu")
 l’adresse IP
 
 l’adresse MAC
+os
+port ouvert 
+vuln
 
 ✅ Fonctionnalités principales
  Scan réseau local avec nmap
