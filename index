@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Carte des appareils connectés</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; margin-bottom: 1em; }
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Appareils détectés sur le réseau</h1>
+
+    <div>
+        <button onclick="location.reload()">🔄 Actualiser</button>
+        <button onclick="exportJSON()">📄 Export JSON</button>
+        <button onclick="exportCSV()">📊 Export CSV</button>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([14.6928, -17.4467], 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Icône personnalisée
+        const customIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3522/3522095.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 32],
+            popupAnchor: [0, -32]
+        });
+
+        let devicesData = [];
+
+        fetch('/api/devices')
+            .then(response => response.json())
+            .then(data => {
+                devicesData = data;  // stocker pour export JSON/CSV
+
+                data.forEach((device, index) => {
+                    const offsetLat = 14.6928 + (Math.random() - 0.5) * 0.01;
+                    const offsetLon = -17.4467 + (Math.random() - 0.5) * 0.01;
+
+                    // Ports ouverts
+                    let portsInfo = '';
+                    if (device.ports && device.ports.length > 0) {
+                        portsInfo = '<b>Ports ouverts :</b><ul>';
+                        device.ports.forEach(port => {
+                            // Vulnérabilités détectées (via script vuln NSE)
+                            let vulnDetails = '';
+                            if (port.vulns && Object.keys(port.vulns).length > 0) {
+                                vulnDetails += '<br><span style="color:red;"><b>🔒 Vulnérabilités détectées :</b></span><ul>';
+                                for (const [script, output] of Object.entries(port.vulns)) {
+                                    vulnDetails += `<li><b>${script}</b><br><small>${output}</small></li>`;
+                                }
+                                vulnDetails += '</ul>';
+                            }
+
+                            portsInfo += `<li>${port.port} (${port.name || 'inconnu'})`
+                                + (port.product ? ` - ${port.product}` : '')
+                                + (port.version ? ` ${port.version}` : '')
+                                + (port.cpe ? ` <br><small>CPE: ${port.cpe}</small>` : '')
+                                + vulnDetails
+                                + `</li>`;
+                        });
+                        portsInfo += '</ul>';
+                    } else {
+                        portsInfo = '<i>Aucun port ouvert détecté</i>';
+                    }
+
+                    const popupContent = `
+                        <b>${device.hostname || "Appareil inconnu"}</b><br>
+                        <b>IP :</b> ${device.ip}<br>
+                        <b>MAC :</b> ${device.mac || "Non détectée"}<br>
+                        <b>OS :</b> ${device.os || "Inconnu"}<br>
+                        <b>Précision :</b> ${device.accuracy || "N/A"}<br>
+                        <b>CPE :</b> ${device.os_cpe || "N/A"}<br>
+                        ${portsInfo}
+                    `;
+
+                    L.marker([offsetLat, offsetLon], { icon: customIcon })
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                });
+            })
+            .catch(err => {
+                alert("Erreur lors du chargement des données : " + err);
+            });
+
+        // 📁 Export JSON
+        function exportJSON() {
+            const blob = new Blob([JSON.stringify(devicesData, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'scan_resultats.json';
+            link.click();
+        }
+
+        // 📊 Export CSV
+        function exportCSV() {
+            let csv = 'IP,Hostname,MAC,OS,Accuracy,OS_CPE,Port,Service,CPE\n';
+            devicesData.forEach(device => {
+                if (device.ports.length > 0) {
+                    device.ports.forEach(port => {
+                        csv += `${device.ip},"${device.hostname}","${device.mac}","${device.os}",${device.accuracy},"${device.os_cpe}",${port.port},"${port.name}","${port.cpe}"\n`;
+                    });
+                } else {
+                    csv += `${device.ip},"${device.hostname}","${device.mac}","${device.os}",${device.accuracy},"${device.os_cpe}",,,\n`;
+                }
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'scan_resultats.csv';
+            link.click();
+        }
+    </script>
+</body>
+</html>
